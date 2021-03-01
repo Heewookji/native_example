@@ -1,61 +1,78 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_foreground_plugin/flutter_foreground_plugin.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:native_example/screen/battery_screen.dart';
+import 'package:native_example/screen/web_rtc_screen.dart';
 
 void main() {
+  if (WebRTC.platformIsAndroid) {
+    WidgetsFlutterBinding.ensureInitialized();
+    startForegroundService();
+  }
   runApp(MyApp());
+}
+
+Future<bool> startForegroundService() async {
+  await FlutterForegroundPlugin.setServiceMethodInterval(seconds: 5);
+  await FlutterForegroundPlugin.setServiceMethod(globalForegroundService);
+  await FlutterForegroundPlugin.startForegroundService(
+    holdWakeLock: false,
+    onStarted: () {
+      print('Foreground on Started');
+    },
+    onStopped: () {
+      print('Foreground on Stopped');
+    },
+    title: 'Tcamera',
+    content: 'Tcamera sharing your screen.',
+    iconName: 'ic_stat_mobile_screen_share',
+  );
+  return true;
+}
+
+void globalForegroundService() {
+  debugPrint('current datetime is ${DateTime.now()}');
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: MyHomePage(),
+      home: HomeScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  static const platform =
-      const MethodChannel('com.example.native_example/battery');
-
-  String _batteryLevel = 'Unknown battery level.';
-
-  Future<void> _getBatteryLevel() async {
-    String batteryLevel;
-    try {
-      final int result = await platform.invokeMethod('getBatteryLevel');
-      batteryLevel = 'Battery level at $result % .';
-    } on PlatformException catch (e) {
-      batteryLevel = "Failed to get battery level: '${e.message}'.";
-    }
-
-    setState(() {
-      _batteryLevel = batteryLevel;
-    });
-  }
-
+class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('native example'),
-      ),
+      appBar: AppBar(),
       body: Center(
-        child: Text(_batteryLevel),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _getBatteryLevel,
-        child: Icon(Icons.add),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            RaisedButton(
+              child: Text('Battery'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (ctx) => BatteryScreen(),
+                ),
+              ),
+            ),
+            RaisedButton(
+              child: Text('WebRtc'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (ctx) => WebRtcScreen(),
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
